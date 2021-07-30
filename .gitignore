@@ -88,4 +88,7 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+# Output Directory
+dist
+
 # End of https://www.toptal.com/developers/gitignore/api/macos,windows,linux,react
