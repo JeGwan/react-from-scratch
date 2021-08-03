@@ -4,13 +4,16 @@
   "description": "",
   "main": "src/index.js",
   "scripts": {
-    "build": "webpack --mode=production"
+    "dev": "webpack serve",
+    "build": "webpack --mode=production",
+    "build:dev": "webpack"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "core-js": "3.16.0",
     "dayjs": "^1.10.6",
+    "html-webpack-plugin": "^5.3.2",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "web-vitals": "^2.1.0"
@@ -22,8 +25,10 @@
     "@babel/preset-react": "^7.14.5",
     "babel-loader": "^8.2.2",
     "css-loader": "^6.2.0",
+    "rimraf": "^3.0.2",
     "style-loader": "^3.2.1",
     "webpack": "^5.47.1",
-    "webpack-cli": "^4.7.2"
+    "webpack-cli": "^4.7.2",
+    "webpack-dev-server": "^3.11.2"
   }
 }

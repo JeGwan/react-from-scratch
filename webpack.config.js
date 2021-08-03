@@ -1,8 +1,36 @@
 const path = require("path");
 const webpack = require("webpack");
+const HtmlWebpackPlugin = require("html-webpack-plugin");
+const isProd = process.env.NODE_ENV === "production";
+
+const htmlOption = Object.assign(
+  {},
+  {
+    inject: true,
+    template: path.join(__dirname, "public/index.html"),
+  },
+  isProd
+    ? {
+        minify: {
+          removeComments: true,
+          collapseWhitespace: true,
+          removeRedundantAttributes: true,
+          useShortDoctype: true,
+          removeEmptyAttributes: true,
+          removeStyleLinkTypeAttributes: true,
+          keepClosingSlash: true,
+          minifyJS: true,
+          minifyCSS: true,
+          minifyURLs: true,
+        },
+      }
+    : undefined
+);
 
 module.exports = {
+  mode: "development",
   entry: "./src/index.js",
+  devtool: "source-map",
   module: {
     rules: [
       {
@@ -18,15 +46,21 @@ module.exports = {
   },
   resolve: { extensions: [".js", ".jsx"] },
   output: {
+    clean: true,
     path: path.resolve(__dirname, "dist"),
-    publicPath: "/dist/",
-    filename: "main.js",
+    publicPath: "",
+    filename: "[name].bundle.js",
   },
   devServer: {
-    contentBase: path.join(__dirname, "public/"),
     port: 3000,
-    publicPath: "http://localhost:3000/dist/",
-    hotOnly: true,
+    hot: true,
+    contentBase: path.resolve(__dirname, "dist"),
+    contentBasePublicPath: "/",
+    watchContentBase: true,
   },
-  plugins: [new webpack.HotModuleReplacementPlugin()],
+  plugins: [
+    new webpack.HotModuleReplacementPlugin(), // HMR시 트루?
+    new HtmlWebpackPlugin(htmlOption), // 빌드시 html template에 번들 넣어줌
+    new webpack.ProgressPlugin(), //  진행율 알려줌
+  ],
 };
