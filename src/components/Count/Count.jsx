@@ -28,7 +28,7 @@ const Count = () => {
     <div>
       <div className={styles.count}>{count}😀</div>
       <div className={styles.buttons}>
-        <button onClick={handlePlus}>됩니까?~! 😀</button>
+        <button onClick={handlePlus}>Plus 😀</button>
         <button onClick={handleMinus}>Minus 😡</button>
         <button onClick={throwError}>throwError</button>
         <button onClick={byErrorThrower}>byErrorThrower</button>

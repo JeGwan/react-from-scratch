@@ -398,7 +398,7 @@ yarn add -D webpack webpack-cli
 
 - webpack을 production(브라우저)에서 쓰진않습니다. 우리가 만든 앱을 브라우저에서 동작하도록 번들링 해주는 도구이기에 `-D` 플래그를 이용, `devDependencies`로 설치했습니다.
 - `webpack` : `@babel/core` 처럼 웹팩의 기능적인 소스들이 들어있는 패키지입니다.
-- `webpack` : `@babel/cli` 처럼 웹팩을 CLI에서 실행할 수 있게 해주는 패키지입니다.
+- `webpack-cli` : `@babel/cli` 처럼 웹팩을 CLI에서 실행할 수 있게 해주는 패키지입니다.
 
 그 뒤 그냥 `npx webpack` 이라고 쳐봅시다.
 
@@ -425,6 +425,8 @@ You may need an appropriate loader to handle this file type, currently no loader
 
 1. mode 를 명시해주어야 합니다. (기본값으로 `production`을 쓰긴합니다)
 2. `JSX` 문법을 만나자 `Unexpected token` 에러를 냅니다.
+
+설정값을 더 넣어줘야 합니다!
 
 기본적으로 아무 설정없이 실행하면 `webpack`은
 
@@ -480,8 +482,6 @@ dist
  └── main.js
 ```
 
-![img1](images/img1.png)
-
 그리고 해당 스크립트를 가져오는 test.html을 만들어 실행해보니 아주 잘 실행이됩니다.
 그리고 우리가 `./test/index.js`에서 만든 코드가 다음과 같이 바뀌었습니다.
 
@@ -499,6 +499,8 @@ console.log(-1, 5, n()().format("YYYY-MM-DD"));
    역시 하나의 파일에 포함되게 됩니다.
 
 그래서 코드 스플리팅할 필요성이 생깁니다.
+
+이제 진짜 설정하러 갑시다.
 
 ### Webpack 설정 완성
 
@@ -519,7 +521,7 @@ module.exports = {
       {
         test: /\.(js|jsx)$/,
         exclude: /node_modules/,
-        loader: "babel-loader",
+        use: "babel-loader",
       },
       {
         test: /\.css$/,
@@ -546,11 +548,9 @@ module.exports = {
     contentBasePublicPath: ["/images", "/assets"],
     hot: true,
   },
-  plugins: [
-    new HtmlWebpackPlugin({
-      template: "./public/index.html",
-    }),
-  ],
+  plugins: [new HtmlWebpackPlugin({ template: "./public/index.html" })].filter(
+    Boolean
+  ),
   optimization: {
     splitChunks: {
       chunks: "all",
@@ -631,21 +631,20 @@ module.exports = {
 `chunk` 옵션은 최적화를 위해 어떤 애덜이 대상이 될 건지 지정합니다.
 저는 이옵션에 `all`을 해주었는데, `async`(on demand) , `initial`(initial page load) 둘다 대상이 됩니다.
 
-그리고 다음 처럼 빌드 스크립트를 써주어 봅시다.
+그리고 다음처럼 빌드 스크립트를 써주어 봅시다.
 
 ```json
 {
   "scripts": {
     "dev": "webpack serve",
-    "build": "NODE_ENV=production webpack",
-    "build:dev": "webpack"
+    "build": "cross-env NODE_ENV=production webpack"
   }
 }
 ```
 
 ### 주의
 
-webpack-dev-server 로 개발 서버를 여는 것은
+`webpack-dev-server` 로 개발 서버를 여는 것은
 `webapck-cli 4.x`, `webpack 5.x` 버전에서 문제가 생기고 있습니다.
 기존 스크립트를 아래와 같이 변경해야합니다.
 
@@ -664,7 +663,17 @@ webpack serve
 파일을 고치고 저장해봐도 컴파일은 되는데 브라우저에서 해당 부분만 리로딩하지 않습니다.
 아무래도 추가 설정이 필요한가봅니다.
 
-## React 에서의 HMR
+## Hot Module Replacement & React 에서의 HMR
+
+### Hot Module Replacement 이란
+
+Hot Module Replacement(이하 HMR)는 모듈 전체를 다시 로드하지 않고 애플리케이션이 실행되는 동안 교환, 추가 또는 제거합니다. 다음의 몇가지 방법으로 개발 속도를 크게 높일 수 있습니다.
+
+- full refresh 중에 손실되는 애플리케이션의 state를 유지합니다.
+- 변경된 사항만 갱신합니다.
+- 소스코드에서 css/js 를 수정하면 즉시 업데이트합니다. 브라우저 개발자도구에서 직접 변경하는 것과 거의 똑같은 속도!
+
+### React 에서의 HMR
 
 Dan abramov 는 react-hot-loader가 곧 React fast refresh로 대체될 것이라고 했습니다
 
@@ -688,45 +697,82 @@ yarn add -D @pmmmwh/react-refresh-webpack-plugin react-refresh
 
 2. webpack.config.js를 수정해줍시다.
 
-- 기존에 따로 만들어둔 `.babelrc`를 웹팩은 자동을 불러옵니다. 다만 이제부터는 코드레벨에서 환경에 대해 선택적으로 플러그인을 불러오기 위해서 webpack 설정에 써넣기로 하고, 기존 `.babelrc`는 지워줍시다.
-- `development` 모드 일 때 HotModuleReplacementPlugin과 ReactRefreshWebpackPlugin을 활성화 해줍니다.
+- `babel` 옵션에도 설정을 해주어야 하는데, 환경변수에 따라 다른 설정을 넣어주기 위해 기존 바벨 설정 파일을 json형식에서 js로 바꾸겠습니다. (`.babelrc` => `babel.config.js`).
+- `development` 모드일때 ReactRefreshWebpackPlugin를 활성화 해줍니다.
 
 ```js
+// ./webpack.config.js
+const HtmlWebpackPlugin = require("html-webpack-plugin");
+const ReactRefreshWebpackPlugin = require("@pmmmwh/react-refresh-webpack-plugin");
+const path = require("path");
+const isProd = process.env.NODE_ENV === "production";
 module.exports = {
+  mode: isProd ? "production" : "development",
+  devtool: isProd ? undefined : "eval-cheap-module-source-map",
+  entry: "./src/index.js",
+  resolve: { extensions: [".js", ".jsx"] },
   module: {
     rules: [
       {
         test: /\.(js|jsx)$/,
         exclude: /node_modules/,
-        use: [
-          {
-            loader: "babel-loader",
-            options: {
-              presets: [
-                [
-                  "@babel/preset-env",
-                  {
-                    useBuiltIns: "usage",
-                    corejs: "3.16.0",
-                    targets: "> 0.5%, last 2 versions, Firefox ESR, not dead",
-                  },
-                ],
-                "@babel/preset-react",
-              ],
-              plugins: [
-                !isProd && require.resolve("react-refresh/babel"),
-              ].filter(Boolean),
-            },
-          },
-        ],
+        use: "babel-loader",
+      },
+      {
+        test: /\.css$/,
+        use: ["style-loader", "css-loader"],
       },
     ],
   },
+  output: {
+    clean: true,
+    filename: (pathData) => {
+      return pathData.chunk.name === "main"
+        ? "bundles/index.js"
+        : "bundles/chunks/[contenthash].js";
+    },
+    path: path.resolve(__dirname, "dist"),
+    publicPath: "/",
+  },
+  devServer: {
+    port: 3000,
+    contentBase: [
+      path.resolve(__dirname, "public/images"),
+      path.resolve(__dirname, "public/assets"),
+    ],
+    contentBasePublicPath: ["/images", "/assets"],
+    hot: true,
+  },
   plugins: [
-    !isProd && new webpack.HotModuleReplacementPlugin(),
     !isProd && new ReactRefreshWebpackPlugin(),
     new HtmlWebpackPlugin({ template: "./public/index.html" }),
   ].filter(Boolean),
+  optimization: {
+    splitChunks: {
+      chunks: "all",
+    },
+  },
+};
+```
+
+```js
+// ./babel.config.js
+const isProd = process.env.NODE_ENV === "production";
+module.exports = {
+  presets: [
+    [
+      "@babel/preset-env",
+      {
+        useBuiltIns: "usage",
+        corejs: "3.16.0",
+        targets: isProd
+          ? "> 0.5%, last 2 versions, Firefox ESR, not dead"
+          : "defaults",
+      },
+    ],
+    ["@babel/preset-react", { development: !isProd, runtime: "automatic" }],
+  ],
+  ...(!isProd && { plugins: ["react-refresh/babel"] }),
 };
 ```
 
@@ -748,6 +794,21 @@ module.exports = {
     ],
   },
 };
+```
+
+이제 다음처럼 scss 모듈을 쓸 수 있습니다.
+
+```js
+import styles from "./Count.module.scss";
+const Count = () => {
+  return (
+    <div>
+      <div className={styles.count}></div>
+      <div className={styles.buttons}></div>
+    </div>
+  );
+};
+export default Count;
 ```
 
 ### 먼저 적용할 css 와 나중에 적용할 css(준비중)

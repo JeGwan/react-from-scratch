@@ -1,7 +1,6 @@
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const ReactRefreshWebpackPlugin = require("@pmmmwh/react-refresh-webpack-plugin");
 const path = require("path");
-const webpack = require("webpack");
 const isProd = process.env.NODE_ENV === "production";
 module.exports = {
   mode: isProd ? "production" : "development",
@@ -13,27 +12,7 @@ module.exports = {
       {
         test: /\.(js|jsx)$/,
         exclude: /node_modules/,
-        use: [
-          {
-            loader: "babel-loader",
-            options: {
-              presets: [
-                [
-                  "@babel/preset-env",
-                  {
-                    useBuiltIns: "usage",
-                    corejs: "3.16.0",
-                    targets: "> 0.5%, last 2 versions, Firefox ESR, not dead",
-                  },
-                ],
-                "@babel/preset-react",
-              ],
-              plugins: [
-                !isProd && require.resolve("react-refresh/babel"),
-              ].filter(Boolean),
-            },
-          },
-        ],
+        use: "babel-loader",
       },
       {
         test: /\.(sa|sc|c)ss$/,
@@ -61,7 +40,6 @@ module.exports = {
     hot: true,
   },
   plugins: [
-    !isProd && new webpack.HotModuleReplacementPlugin(),
     !isProd && new ReactRefreshWebpackPlugin(),
     new HtmlWebpackPlugin({ template: "./public/index.html" }),
   ].filter(Boolean),
