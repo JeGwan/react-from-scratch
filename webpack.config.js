@@ -1,66 +1,73 @@
+const HtmlWebpackPlugin = require("html-webpack-plugin");
+const ReactRefreshWebpackPlugin = require("@pmmmwh/react-refresh-webpack-plugin");
 const path = require("path");
 const webpack = require("webpack");
-const HtmlWebpackPlugin = require("html-webpack-plugin");
 const isProd = process.env.NODE_ENV === "production";
-
-const htmlOption = Object.assign(
-  {},
-  {
-    inject: true,
-    template: path.join(__dirname, "public/index.html"),
-  },
-  isProd
-    ? {
-        minify: {
-          removeComments: true,
-          collapseWhitespace: true,
-          removeRedundantAttributes: true,
-          useShortDoctype: true,
-          removeEmptyAttributes: true,
-          removeStyleLinkTypeAttributes: true,
-          keepClosingSlash: true,
-          minifyJS: true,
-          minifyCSS: true,
-          minifyURLs: true,
-        },
-      }
-    : undefined
-);
-
 module.exports = {
-  mode: "development",
+  mode: isProd ? "production" : "development",
+  devtool: isProd ? undefined : "eval-cheap-module-source-map",
   entry: "./src/index.js",
-  devtool: "source-map",
+  resolve: { extensions: [".js", ".jsx"] },
   module: {
     rules: [
       {
         test: /\.(js|jsx)$/,
         exclude: /node_modules/,
-        loader: "babel-loader",
+        use: [
+          {
+            loader: "babel-loader",
+            options: {
+              presets: [
+                [
+                  "@babel/preset-env",
+                  {
+                    useBuiltIns: "usage",
+                    corejs: "3.16.0",
+                    targets: "> 0.5%, last 2 versions, Firefox ESR, not dead",
+                  },
+                ],
+                "@babel/preset-react",
+              ],
+              plugins: [
+                !isProd && require.resolve("react-refresh/babel"),
+              ].filter(Boolean),
+            },
+          },
+        ],
       },
       {
-        test: /\.css$/,
-        use: ["style-loader", "css-loader"],
+        test: /\.(sa|sc|c)ss$/,
+        use: ["style-loader", "css-loader", "sass-loader"],
       },
     ],
   },
-  resolve: { extensions: [".js", ".jsx"] },
   output: {
     clean: true,
+    filename: (pathData) => {
+      return pathData.chunk.name === "main"
+        ? "bundles/index.js"
+        : "bundles/chunks/[contenthash].js";
+    },
     path: path.resolve(__dirname, "dist"),
-    publicPath: "",
-    filename: "[name].bundle.js",
+    publicPath: "/",
   },
   devServer: {
     port: 3000,
+    contentBase: [
+      path.resolve(__dirname, "public/images"),
+      path.resolve(__dirname, "public/assets"),
+    ],
+    contentBasePublicPath: ["/images", "/assets"],
     hot: true,
-    contentBase: path.resolve(__dirname, "dist"),
-    contentBasePublicPath: "/",
-    watchContentBase: true,
   },
   plugins: [
-    new webpack.HotModuleReplacementPlugin(), // HMR시 트루?
-    new HtmlWebpackPlugin(htmlOption), // 빌드시 html template에 번들 넣어줌
-    new webpack.ProgressPlugin(), //  진행율 알려줌
-  ],
+    !isProd && new webpack.HotModuleReplacementPlugin(),
+    !isProd && new ReactRefreshWebpackPlugin(),
+    new HtmlWebpackPlugin({ template: "./public/index.html" }),
+  ].filter(Boolean),
+  optimization: {
+    splitChunks: {
+      chunks: "all",
+    },
+  },
 };

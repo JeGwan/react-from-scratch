@@ -500,18 +500,20 @@ console.log(-1, 5, n()().format("YYYY-MM-DD"));
 
 그래서 코드 스플리팅할 필요성이 생깁니다.
 
-### 첫 리액트 앱이 돌아가게 하기 위한 설정
+### Webpack 설정 완성
 
 일단 설정 파일부터 만들어봅시다.
 `webpack.config.js`를 루트에 생성해주세요.
 
 ```js
-// webpack.config.js
+const HtmlWebpackPlugin = require("html-webpack-plugin");
 const path = require("path");
-const webpack = require("webpack");
-
+const isProd = process.env.NODE_ENV === "production";
 module.exports = {
+  mode: isProd ? "production" : "development",
+  devtool: isProd ? undefined : "eval-cheap-module-source-map",
   entry: "./src/index.js",
+  resolve: { extensions: [".js", ".jsx"] },
   module: {
     rules: [
       {
@@ -525,52 +527,228 @@ module.exports = {
       },
     ],
   },
-  resolve: { extensions: [".js", ".jsx"] },
   output: {
+    clean: true,
+    filename: (pathData) => {
+      return pathData.chunk.name === "main"
+        ? "bundles/index.js"
+        : "bundles/chunks/[contenthash].js";
+    },
     path: path.resolve(__dirname, "dist"),
-    publicPath: "/dist/",
-    filename: "main.js",
+    publicPath: "/",
   },
   devServer: {
-    contentBase: path.join(__dirname, "public/"),
     port: 3000,
-    publicPath: "http://localhost:3000/dist/",
-    hotOnly: true,
+    contentBase: [
+      path.resolve(__dirname, "public/images"),
+      path.resolve(__dirname, "public/assets"),
+    ],
+    contentBasePublicPath: ["/images", "/assets"],
+    hot: true,
   },
-  plugins: [new webpack.HotModuleReplacementPlugin()],
+  plugins: [
+    new HtmlWebpackPlugin({
+      template: "./public/index.html",
+    }),
+  ],
+  optimization: {
+    splitChunks: {
+      chunks: "all",
+    },
+  },
 };
 ```
 
-추가적으로 다음 로더들을 설치했습니다.
+#### 설명
 
-- `babel-loader` : 웹팩에서 바벨을 불러올 수 있게 하기 위해서입니다.
-- `css-loader` : `.css` 파일을 모듈로 불러옵니다.
-- `style-loader` : css 모듈을 인라인, css 등 다양하게 html파일에 주입시켜줍니다.
+- `mode` :
 
-### 설정에 대한 설명
+  - `production` : module과 chunk에 대해 FlagDependencyUsagePlugin, FlagIncludedChunksPlugin, ModuleConcatenationPlugin, NoEmitOnErrorsPlugin, TerserPlugin 등 플로그인을 적용하여 minify, uglify 된 뭉개진(mangled) 코드로 만들어줍니다.
+  - `development` : module과 chunk를 뭉개지 않습니다. 우리가 읽을 수 있게 해줍니다.
 
+- `devtool` :webpack이 소스 코드를 번들로 묶을 때, 오류와 경고의 원래 위치를 추적하기 어렵기 때문에 컴파일된 코드를 원래 소스로 매핑하는 소스맵을 제공하는 옵션입니다. 개발 모드에서만 사용합시다!
 - `resolve.extensions` : 확장자를 생략한 import문을 발견 했을 때(e.g. `import App from './App'`) 어느 확장자로 이어서 찾을지 명시해줍니다. 즉 해당 배열안에 넣는 확장자로 된 파일들은 import 시 확장자를 생략하게 할 수도 있습니다. 위의 경우 확장자가 없는 가져오기를 발견했을 때 아래처럼 동작합니다.
   1. `./App.js` 를 찾습니다.
   2. 없으면 `./App.jsx`를 찾습니다.
   3. 없으면 `resolve 할수가 없어 자식아 😡` 라고 빌드시 에러가 납니다.
 - `rule.loader`, `rule.use` : 하나의 로더만 쓸 땐 loader를 씁니다. use는 여러 로더를 순서적으로 적용하고 싶을 때 배열로 받아 쓸 수 있습니다.
-- `publicPath` : 특별히 이 속성은 우리의 `dev-server`를 위한 것입니다. 개발시 매번 빌드할 수 없죠? CRA나 Next.js에서 개발용 서버를 띄워주고 코드 변경에 즉각 리렌더링 해주는 웹서버를 위한 설정이에요. 해당 디렉토리의 public URL을 지정해줍니다. 그래서 실제 디렉토리 구조와 다르게, 라우트를 변경해줄 수도 있습니다. 여튼 잘 지정해야 파일 잘 찾아서 잘 응답해줍니다.
-- `devServer` : 개발 서버 속성입니다. 사실 지정안해도 쓸 수 있습니다. 웹팩이 기본값을 가지고 있거덩요. `publicPath`는 서버에게 우리가 어떤 포트를 쓰고 static파일 위치는 어딘지 지시해줍니다. 여기서는 우리가 빌드해서 내보낸 폴더를 지정했습니다.
-- `webpack.HotModuleReplacementPlugin` : 우리가 Hot Module Replacement를 하고자하니깐.
+- `output`
+
+  - `clean`: true일 경우 빌드 시마다 그전 빌드를 지워줍니다.
+  - `filename` : 번들 파일의 이름을 지어줍니다. string이거나 function을 쓸 수 있습니다. 또 파일 이름뿐 아니라 output path아래로 경로를 정해줄 수도 있습니다. 저는 여기서 모두 bundles아래로, main 만 index.js 로, 나머지는 chunks로 묶었습니다.
+  - `path`: 번들링한 파일들이 내뿜어질 디렉토리를 지정합니다.
+  - `publicPath` : 번들링한 파일을 어떤 주소로 접근가능하게 할지 설정합니다. 상대 경로로 쓸 수도 있고, 번들을 cdn에 올린다면, cdn 주소로도 쓸 수 있습니다.
+
+- `devServer` : 개발 서버 속성입니다. 사실 지정안해도 쓸 수 있습니다. 웹팩이 기본값을 가지고 있거덩요.
+  - `port` : 개발 서버 포트!
+  - `contentBase` : 정적 파일을 제공하고 싶을 때, 그 정적 파일을 어디서 가져올 지 지시합니다.
+  - `contentBasePublicPath`:정적 파일들이 어떤 주소로 접근가능하게 할지 설정합니다.
+  - `hot` : hot reload를 지원합니다!
+- `HtmlWebpackPlugin` : HtmlWebpackPlugin은 webpack 번들을 제공하는 HTML 파일 생성을 도와줍니다. 우리가 `bundle.js`처럼 고정적인 이름의 번들 하나만 쓴다면 `index.html`에서 해당하는 번들만 잡아주면 되지만, 컴파일 시마다 변경되는 hash filename을 가진 하나 이상의 번들이 생성된다면, 자동으로 html에서 번들을 불러오게끔 해주는 편이 편합니다. 이것을 도와주는 플러그인입니다.
+
+#### optimization 옵션 [참고](https://webpack.js.org/plugins/split-chunks-plugin/#defaults)
+
+중요한 개념이라 따로 뺐습니다.
+웹팩은 기본적으로 chunk를 다음과 같은 조건으로 분할합니다.
+
+1. 공유될 수 있는 새로운 청크나, node_modules 폴더 안의 모듈
+2. 새로 생기는 청크는 20kb 이상이어야 합니다.
+3. (on demand) 병렬적으로 청크 요청이 30개 이하가 되도록
+4. (initial page load) 병렬적으로 청크 요청이 30개 이하가 되도록
+
+그러니깐 웹팩 자체에서 브라우저가 가져오는 번들 사이즈와, 개수를 어느정도 고려하고 분할하고 있습니다.
+기본값은 다음과 같습니다.
+
+```js
+module.exports = {
+  //...
+  optimization: {
+    splitChunks: {
+      chunks: "async",
+      minSize: 20000,
+      minRemainingSize: 0,
+      minChunks: 1,
+      maxAsyncRequests: 30,
+      maxInitialRequests: 30,
+      enforceSizeThreshold: 50000,
+      cacheGroups: {
+        defaultVendors: {
+          test: /[\\/]node_modules[\\/]/,
+          priority: -10,
+          reuseExistingChunk: true,
+        },
+        default: {
+          minChunks: 2,
+          priority: -20,
+          reuseExistingChunk: true,
+        },
+      },
+    },
+  },
+};
+```
+
+`chunk` 옵션은 최적화를 위해 어떤 애덜이 대상이 될 건지 지정합니다.
+저는 이옵션에 `all`을 해주었는데, `async`(on demand) , `initial`(initial page load) 둘다 대상이 됩니다.
 
 그리고 다음 처럼 빌드 스크립트를 써주어 봅시다.
 
 ```json
 {
   "scripts": {
-    "build": "webpack --mode=production"
+    "dev": "webpack serve",
+    "build": "NODE_ENV=production webpack",
+    "build:dev": "webpack"
   }
 }
 ```
 
-이제 `./public/index.html`을 브라우저로 열면 잘 동작합니다!
+### 주의
 
-## dev 모드 띄우기 feat. HMR
+webpack-dev-server 로 개발 서버를 여는 것은
+`webapck-cli 4.x`, `webpack 5.x` 버전에서 문제가 생기고 있습니다.
+기존 스크립트를 아래와 같이 변경해야합니다.
+
+```sh
+# 기존 실행 스크립트
+webpack-dev-server
+# 이렇게 바꾸면 잘동작합니다.
+webpack serve
+```
+
+참고 : https://github.com/webpack/webpack-dev-server/issues/2029#issuecomment-707196728
+
+이제 `yarn dev`를 치면! 개발서버가 열리고 확인할 수 있습니다!
+
+근데 `HMR`은 안되는 것 같습니다?
+파일을 고치고 저장해봐도 컴파일은 되는데 브라우저에서 해당 부분만 리로딩하지 않습니다.
+아무래도 추가 설정이 필요한가봅니다.
+
+## React 에서의 HMR
+
+Dan abramov 는 react-hot-loader가 곧 React fast refresh로 대체될 것이라고 했습니다
+
+> React-Hot-Loader is expected to be replaced by React Fast Refresh [원문](https://github.com/gaearon/react-hot-loader)
+
+관련 이슈 : https://github.com/facebook/react/issues/16604
+
+react-fresh라는 이름으로 패키지가 있습니다.
+이에 대한 설정을 하려면 컴포넌트 레벨에서도 붙여줘야할게 많아서 따로 플러그인이 있는지 찾아보니 아래와 같습니다.
+react-refresh-webpack-plugin : https://github.com/pmmmwh/react-refresh-webpack-plugin
+개인 레포인줄 알았는데, CRA로 설치한 것을 eject 했을 때도 포함되어있는 거보니 리액트에서 HMR을 위한 latest한 방식 같습니다.
+그리고 해당 플러그인을 사용하기 위한 리액트, 웹팩 버전이 명시되어있습니다. 최소 React 16.9.0, Webpack 4.43.0 정도는 되어야합니다.
+
+이 플러그인을 통해 React HMR을 적용해봅시다.
+
+1. 패키지를 설치해줍시다.
+
+```bash
+yarn add -D @pmmmwh/react-refresh-webpack-plugin react-refresh
+```
+
+2. webpack.config.js를 수정해줍시다.
+
+- 기존에 따로 만들어둔 `.babelrc`를 웹팩은 자동을 불러옵니다. 다만 이제부터는 코드레벨에서 환경에 대해 선택적으로 플러그인을 불러오기 위해서 webpack 설정에 써넣기로 하고, 기존 `.babelrc`는 지워줍시다.
+- `development` 모드 일 때 HotModuleReplacementPlugin과 ReactRefreshWebpackPlugin을 활성화 해줍니다.
+
+```js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.(js|jsx)$/,
+        exclude: /node_modules/,
+        use: [
+          {
+            loader: "babel-loader",
+            options: {
+              presets: [
+                [
+                  "@babel/preset-env",
+                  {
+                    useBuiltIns: "usage",
+                    corejs: "3.16.0",
+                    targets: "> 0.5%, last 2 versions, Firefox ESR, not dead",
+                  },
+                ],
+                "@babel/preset-react",
+              ],
+              plugins: [
+                !isProd && require.resolve("react-refresh/babel"),
+              ].filter(Boolean),
+            },
+          },
+        ],
+      },
+    ],
+  },
+  plugins: [
+    !isProd && new webpack.HotModuleReplacementPlugin(),
+    !isProd && new ReactRefreshWebpackPlugin(),
+    new HtmlWebpackPlugin({ template: "./public/index.html" }),
+  ].filter(Boolean),
+};
+```
+
+### Sass 적용
+
+rules에서 css 담당 로더를 다음과 같이 바꿉니다.
+
+- 이젠 `.sass, .scss, .css`를 모두 포함합니다.
+- 가장먼저 `sass-loader`가 모듈을 relsove 합니다.
+
+```js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.(sa|sc|c)ss$/,
+        use: ["style-loader", "css-loader", "sass-loader"],
+      },
+    ],
+  },
+};
+```
 
 ### 먼저 적용할 css 와 나중에 적용할 css(준비중)
 
