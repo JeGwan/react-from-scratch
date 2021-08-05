@@ -1,0 +1,12 @@
+.profile {
+  display: flex;
+}
+
+.thumb {
+  flex: 1 0 100px;
+  background-image: url(/images/abc.png);
+}
+
+.info {
+  flex: auto;
+}

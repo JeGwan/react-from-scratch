@@ -1,32 +1,42 @@
 # React from scratch
 
-## Introduction
+## 0. Introduction
 
 이 프로젝트는 CRA 등 보일러플레이트 도구를 사용하지 않고 정말 제로 베이스에서 리액트 프로젝트를 만드는 과정을 보여드리고자 합니다.
 
 크게 다음 꼭지들이 있습니다.
 
-- React 기본 패키지 설치
+- 초기 패키지 준비
 - Babel이 필요한 이유 및 설치와 설정
-- Webpack이 필요한 이유 및 설치와 설정
+- Webpack 필요한 이유 및 설치와 설정
+- Webpack dev server
+- React에서 Hot Module Replacement 적용
+- sass-loader 적용
+- css삽입에 대한 여러 방법
 - TypeScript로의 마이그레이션
 
-## React 기본 패키지 설치
+## 1. 초기 패키지 준비
 
 ```bash
+# 프로젝트를 만들고 싶은 디렉토리에서
+mkdir react-from-scratch && cd react-from-scratch
+npm init -y
 yarn add react react-dom web-vitals
 ```
 
 ## 빌드를 위한 도구 설치
 
-리액트를 JSX문법도 쓰고 ES6로 작성해도 브라우저에서 도는 호환성있는 코드로 빌드 하기 위해서 필요한게 있습니다.
+## 2. Babel이 필요한 이유 및 설치와 설정
 
-### babel
+### Babel은 왜 필요한가요? 🤔
 
-### 님 이거 왜 필요해여?? 🤔
+리액트를 JSX문법을 써서 만드는게 편하죠? 또한 우리는 ES6 작성해도 크로스 브라우징이 되는 찰떡같은 코드로 변경시켜줄 도구가 필요합니다.
+바벨이 그런 도구입니다.
 
 - JSX, ES6 을 ES5 코드로 컴파일 해줍니다.
 - 브라우저 호환성을 위한 polyfill도 해줍니다.
+
+설치해봅시다.
 
 ```bash
 yarn add -D @babel/core @babel/cli @babel/preset-env @babel/preset-react
@@ -37,7 +47,7 @@ yarn add -D @babel/core @babel/cli @babel/preset-env @babel/preset-react
 - `@babel/preset-env` : 최신 ES6+ 문법을 쓰고 브라우저에서 동작하는 자바스크립트로 변환해줍니다. 옵셔널로 폴리필도 해줍니다.
 - `@babel/preset-react` : 핵심은 JSX 문법을 자바스크립트 코드로 바꿔주는 역할입니다.
 
-### 아니 왜케 쪼개놓나요? 설치하기 골치 아프게 😡
+#### 아니 왜케 쪼개놓나요? 설치하기 골치 아프게 😡
 
 다양한 환경에서 필요한 기능이 서로 다를 텐데, 한 몸뚱아리로 거대하게 갖는 것보단, 파일 컴파일에 필요한 녀석을 선택적으로 설치할 수 있게 하기 위함입니다.
 
@@ -137,7 +147,7 @@ new Promise(function (resolve, reject) {
 
 잠깐 `@babel/preset-env`가 어떻게 컴파일 하는지 알아볼 필요가 있습니다.
 
-### `@babel/preset-env`는 어떻게 컴파일을 하는가
+#### `@babel/preset-env`는 어떻게 컴파일을 하는가
 
 브라우저별로 지원되거나 지원되지 않는 기능들이 있을겁니다. 바벨에서는 이런 것을 모아 모아서 어떤 브라우저의 어떤 버전이 어떤걸 지원하는지 mapping 해두었습니다. [여기](https://github.com/babel/babel/blob/main/packages/babel-compat-data/data/plugins.json)를 들어가보세요!
 
@@ -180,7 +190,7 @@ new Promise(function (resolve, reject) {
 }
 ```
 
-#### 마켓 쉐어 기준
+#### Market share 기준
 
 ```json
 {
@@ -204,7 +214,7 @@ new Promise(function (resolve, reject) {
 위에서 쓴 옵션이 `browserlist`의 기본 옵션입니다.
 그게 뭐냐고요?
 
-### browserlist
+#### browserlist
 
 타겟 브라우저를 `.babelrc`에 적는 방식도 있는데 더 좋은 방식이 있습니다.
 support 할 브라우저 버전을 명시해놓고 여러 front-end 툴들이 공유하게 하는 약속같은 파일이 있습니다.
@@ -238,18 +248,13 @@ not dead
 
 마지막 옵션이 있습니다.
 
-### `@babel/preset-env`의 `useBuiltIns`
+#### `@babel/preset-env`의 `useBuiltIns`
 
 `useBuiltIns` 옵션은 `"usage" | "entry" | false` 를 가질 수 있고 기본값은 `false` 입니다.
 
-#### `entry` 일 때
-
-엔트리 파일에서 딱 한번 `import "core-js/stable"; import "regenerator-runtime/runtime";`을 선언하면 필요한 컴파일시 `core-js`모듈만을 불러오도록 바꿉니다.
-
-#### `usage` 일 때
-
-각 파일별로 딱 필요한 polyfill 만을 불러옵니다.
-번들러가 같은 폴리필을 딱 한번만 불러온다는 장점이 있습니다.
+- `entry` : 엔트리 파일에서 딱 한번 `import "core-js/stable"; import "regenerator-runtime/runtime";`을 선언하면 필요한 컴파일시 `core-js`모듈만을 불러오도록 바꿉니다.
+- `usage` : 각 파일별로 딱 필요한 polyfill 만을 불러옵니다. 번들러가 같은 폴리필을 딱 한번만 불러온다는 장점이 있습니다.
+- `false` : 사용하지 않습니다? ? ?? ? ?
 
 ### `@babel/preset-env`의 `corejs`
 
@@ -329,7 +334,7 @@ var _reactDom = _interopRequireDefault(require("react-dom"));
 
 이제 `webpack`이 필요한 때입니다.
 
-## Webpack
+## 3. Webpack 필요한 이유 및 설치와 설정
 
 웹팩은 `bundler` 이자 `task runner` 입니다.
 
@@ -384,7 +389,7 @@ module.exports = {
 
 1. `sass-loader`: `.scss`로 끝나는 파일을 만나면 `.css`형식으로 바꿔주는 역할을 합니다.
 2. `css-loader`: `.css`로 끝나는 파일을 만나면 `import`한 `path` 또는 `url`을 웹팩의 require로 바꿔줍니다. 오로지 모듈로 인식하게 할뿐, css를 적용하진 않습니다.
-3. `style-loader` : `.css`로 불러와지는 모듈을 실제로 html 에 주입시켜주는 역할입니다.
+3. `style-loader` : `.css`로 불러와지는 모듈을 실제로 html 에 주입(\*Inject CSS into the DOM)시켜주는 역할입니다.
 
 이제 우리 프로젝트에서 `webpack`을 설치하고 번들링할 수 있게 설정해줍시다.
 
@@ -502,12 +507,13 @@ console.log(-1, 5, n()().format("YYYY-MM-DD"));
 
 이제 진짜 설정하러 갑시다.
 
-### Webpack 설정 완성
+### Webpack 초기 설정
 
 일단 설정 파일부터 만들어봅시다.
 `webpack.config.js`를 루트에 생성해주세요.
 
 ```js
+// ./webpack.config.js
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const path = require("path");
 const isProd = process.env.NODE_ENV === "production";
@@ -523,10 +529,6 @@ module.exports = {
         exclude: /node_modules/,
         use: "babel-loader",
       },
-      {
-        test: /\.css$/,
-        use: ["style-loader", "css-loader"],
-      },
     ],
   },
   output: {
@@ -539,18 +541,7 @@ module.exports = {
     path: path.resolve(__dirname, "dist"),
     publicPath: "/",
   },
-  devServer: {
-    port: 3000,
-    contentBase: [
-      path.resolve(__dirname, "public/images"),
-      path.resolve(__dirname, "public/assets"),
-    ],
-    contentBasePublicPath: ["/images", "/assets"],
-    hot: true,
-  },
-  plugins: [new HtmlWebpackPlugin({ template: "./public/index.html" })].filter(
-    Boolean
-  ),
+  plugins: [new HtmlWebpackPlugin({ template: "./public/index.html" })],
   optimization: {
     splitChunks: {
       chunks: "all",
@@ -579,11 +570,6 @@ module.exports = {
   - `path`: 번들링한 파일들이 내뿜어질 디렉토리를 지정합니다.
   - `publicPath` : 번들링한 파일을 어떤 주소로 접근가능하게 할지 설정합니다. 상대 경로로 쓸 수도 있고, 번들을 cdn에 올린다면, cdn 주소로도 쓸 수 있습니다.
 
-- `devServer` : 개발 서버 속성입니다. 사실 지정안해도 쓸 수 있습니다. 웹팩이 기본값을 가지고 있거덩요.
-  - `port` : 개발 서버 포트!
-  - `contentBase` : 정적 파일을 제공하고 싶을 때, 그 정적 파일을 어디서 가져올 지 지시합니다.
-  - `contentBasePublicPath`:정적 파일들이 어떤 주소로 접근가능하게 할지 설정합니다.
-  - `hot` : hot reload를 지원합니다!
 - `HtmlWebpackPlugin` : HtmlWebpackPlugin은 webpack 번들을 제공하는 HTML 파일 생성을 도와줍니다. 우리가 `bundle.js`처럼 고정적인 이름의 번들 하나만 쓴다면 `index.html`에서 해당하는 번들만 잡아주면 되지만, 컴파일 시마다 변경되는 hash filename을 가진 하나 이상의 번들이 생성된다면, 자동으로 html에서 번들을 불러오게끔 해주는 편이 편합니다. 이것을 도와주는 플러그인입니다.
 
 #### optimization 옵션 [참고](https://webpack.js.org/plugins/split-chunks-plugin/#defaults)
@@ -631,7 +617,47 @@ module.exports = {
 `chunk` 옵션은 최적화를 위해 어떤 애덜이 대상이 될 건지 지정합니다.
 저는 이옵션에 `all`을 해주었는데, `async`(on demand) , `initial`(initial page load) 둘다 대상이 됩니다.
 
+### 실행 스크립트 만들기 📃
+
 그리고 다음처럼 빌드 스크립트를 써주어 봅시다.
+
+```json
+{
+  "scripts": {
+    "build": "cross-env NODE_ENV=production webpack"
+  }
+}
+```
+
+이제 `yarn build` 를 통해 빌드를 해보세요!
+
+## 4. Webpack dev server
+
+CRA나 Next.js를 써보셨다면 개발용 서버를 띄웠던 경험이 있을겁니다.
+Webpack 설정에서 다음을 추가해서 개발 서버를 띄워봅시다.
+
+```js
+// ./webpack.config.js
+module.exports = {
+  // ...
+  devServer: {
+    port: 3000,
+    contentBase: [
+      path.resolve(__dirname, "public/images"),
+      path.resolve(__dirname, "public/assets"),
+    ],
+    contentBasePublicPath: ["/images", "/assets"],
+  },
+};
+```
+
+- `devServer` : 개발 서버 속성입니다. 사실 지정안해도 쓸 수 있습니다. 웹팩이 기본값을 가지고 있거덩요.
+  - `port` : 개발 서버 포트를 지정해줍니다.
+  - `contentBase` : 정적 파일을 제공하고 싶을 때, 그 정적 파일을 어디서 가져올 지 지시합니다.
+  - `contentBasePublicPath`:정적 파일들이 어떤 주소로 접근가능하게 할지 설정합니다.
+
+저는 images와 assets이라는 폴더를 정적 파일을 제공할 수 있게 설정해 둔것입니다. `localhost:3000/images`로 접근가능할거에요.
+스크립트에 다음을 추가해주세요.
 
 ```json
 {
@@ -642,11 +668,13 @@ module.exports = {
 }
 ```
 
+이제 `yarn dev`를 하면 개발서버가 짜잔✨ 하고 열립니다!
+
 ### 주의
 
 `webpack-dev-server` 로 개발 서버를 여는 것은
 `webapck-cli 4.x`, `webpack 5.x` 버전에서 문제가 생기고 있습니다.
-기존 스크립트를 아래와 같이 변경해야합니다.
+`webpack-dev-server` 로 쓰셨던 분들은 아래처럼 바꾸면 잘 동작합니다.
 
 ```sh
 # 기존 실행 스크립트
@@ -657,13 +685,12 @@ webpack serve
 
 참고 : https://github.com/webpack/webpack-dev-server/issues/2029#issuecomment-707196728
 
-이제 `yarn dev`를 치면! 개발서버가 열리고 확인할 수 있습니다!
+## 5. React에서 Hot Module Replacement 적용
 
-근데 `HMR`은 안되는 것 같습니다?
-파일을 고치고 저장해봐도 컴파일은 되는데 브라우저에서 해당 부분만 리로딩하지 않습니다.
-아무래도 추가 설정이 필요한가봅니다.
+이제 `yarn dev`를 치면! 개발서버가 열리고 확인할 수 있게 되었습니다.
 
-## Hot Module Replacement & React 에서의 HMR
+근데 `HMR`은 안되는 것 같습니다? 파일을 고치고 저장해봐도 컴파일은 되는데 브라우저에서 해당 부분만 리로딩하지 않습니다.
+`HMR`을 위한 추가 설정이 필요합니다!
 
 ### Hot Module Replacement 이란
 
@@ -672,6 +699,8 @@ Hot Module Replacement(이하 HMR)는 모듈 전체를 다시 로드하지 않�
 - full refresh 중에 손실되는 애플리케이션의 state를 유지합니다.
 - 변경된 사항만 갱신합니다.
 - 소스코드에서 css/js 를 수정하면 즉시 업데이트합니다. 브라우저 개발자도구에서 직접 변경하는 것과 거의 똑같은 속도!
+
+즉 새로고침 없이, 변경된 스크립트만 개발서버에서 다시 빌드해준 것을 공급해주는 방식이에요. file change가 일어나면, watch하고 있던 녀석이 동작하여 브라우저에게 websocket을 통해 "야 파일 변경됐다 이걸로 다시 받어!" 라고 알려주고 바뀌는 방식입니다.
 
 ### React 에서의 HMR
 
@@ -682,9 +711,12 @@ Dan abramov 는 react-hot-loader가 곧 React fast refresh로 대체될 것이�
 관련 이슈 : https://github.com/facebook/react/issues/16604
 
 react-fresh라는 이름으로 패키지가 있습니다.
+
 이에 대한 설정을 하려면 컴포넌트 레벨에서도 붙여줘야할게 많아서 따로 플러그인이 있는지 찾아보니 아래와 같습니다.
+
 react-refresh-webpack-plugin : https://github.com/pmmmwh/react-refresh-webpack-plugin
-개인 레포인줄 알았는데, CRA로 설치한 것을 eject 했을 때도 포함되어있는 거보니 리액트에서 HMR을 위한 latest한 방식 같습니다.
+
+개인 레포인줄 알았는데, CRA로 설치한 것을 eject 했을 때도 포함되어있는 거보니 리액트에서 HMR을 위한 latest한 방식 같습니다.\
 그리고 해당 플러그인을 사용하기 위한 리액트, 웹팩 버전이 명시되어있습니다. 최소 React 16.9.0, Webpack 4.43.0 정도는 되어야합니다.
 
 이 플러그인을 통해 React HMR을 적용해봅시다.
@@ -698,7 +730,9 @@ yarn add -D @pmmmwh/react-refresh-webpack-plugin react-refresh
 2. webpack.config.js를 수정해줍시다.
 
 - `babel` 옵션에도 설정을 해주어야 하는데, 환경변수에 따라 다른 설정을 넣어주기 위해 기존 바벨 설정 파일을 json형식에서 js로 바꾸겠습니다. (`.babelrc` => `babel.config.js`).
+- 왜인지 모르겠지만, `.browserslistrc` 로 target 브라우저를 설정하는 방식으로 두면 자꾸 HMR적용이 안되었습니다. 해당 설정을 그대로 `babel.config.js`로 이전시키니 잘 동작했습니다. 기존 `.browserslistrc`를 삭제해주세요!
 - `development` 모드일때 ReactRefreshWebpackPlugin를 활성화 해줍니다.
+- `devServer.hot` : hot reload를 지원하기 위해 devServer에 hot이라는 설정도 추가해줍시다.
 
 ```js
 // ./webpack.config.js
@@ -755,6 +789,8 @@ module.exports = {
 };
 ```
 
+변경된 babel.config.js는 다음과 같습니다.
+
 ```js
 // ./babel.config.js
 const isProd = process.env.NODE_ENV === "production";
@@ -776,7 +812,9 @@ module.exports = {
 };
 ```
 
-### Sass 적용
+## 6. sass-loader 적용
+
+그냥 css로 작업하는거 너무 힘들죠. 이번엔 css pre-processor중 가장 많이 쓰이는 sass를 적용해볼게요.
 
 rules에서 css 담당 로더를 다음과 같이 바꿉니다.
 
@@ -817,8 +855,6 @@ export default Count;
 그뒤 필요한 녀석들은 쪼개서 컴포넌트가 필요할 때 불러옵시다.
 
 ### 코드 스플리팅 (준비중)
-
-### dev 서버 (준비중)
 
 ### 타입스크립트 적용 (준비중)
 
