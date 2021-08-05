@@ -1,0 +1,12 @@
+.button {
+  cursor: pointer;
+  background-color: #eee;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 8px;
+  height: 42px;
+  padding: 0 12px;
+  &:hover {
+    background-color: #ddd;
+  }
+}

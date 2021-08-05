@@ -1,6 +1,7 @@
 import styles from "./Count.module.scss";
 import React, { useCallback, useEffect, useState } from "react";
 import useErrorThrower from "../../hooks/ErrorThrower";
+import Button from "../atoms/Button";
 
 const Count = () => {
   const [count, setCount] = useState(0);
@@ -28,10 +29,10 @@ const Count = () => {
     <div>
       <div className={styles.count}>{count}😀</div>
       <div className={styles.buttons}>
-        <button onClick={handlePlus}>Plus 😀</button>
-        <button onClick={handleMinus}>Minus 😡</button>
-        <button onClick={throwError}>throwError</button>
-        <button onClick={byErrorThrower}>byErrorThrower</button>
+        <Button onClick={handlePlus}>더하기 😀</Button>
+        <Button onClick={handleMinus}>빼기 😡</Button>
+        <Button onClick={throwError}>throwError</Button>
+        <Button onClick={byErrorThrower}>byErrorThrower</Button>
       </div>
     </div>
   );

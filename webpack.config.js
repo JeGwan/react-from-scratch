@@ -1,5 +1,5 @@
 const isProd = process.env.NODE_ENV === "production";
-const useStyleLoader = process.env.USE_STYLE_LOADER === "true";
+const useStyleLoader = false;
 const chalk = require("chalk");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const ReactRefreshWebpackPlugin = require("@pmmmwh/react-refresh-webpack-plugin");
@@ -7,17 +7,16 @@ const webpack = require("webpack");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const StyleInjectionLoader = useStyleLoader
   ? { loader: "style-loader", options: { injectType: "linkTag" } }
-  : {
-      loader: MiniCssExtractPlugin.loader,
-      options: {
-        publicPath: "/static/css/",
-      },
-    };
+  : { loader: MiniCssExtractPlugin.loader };
 const cssPlugin = useStyleLoader
   ? false
   : new MiniCssExtractPlugin({
-      filename: !isProd ? "[name].css" : "[name].[contenthash].css",
-      chunkFilename: !isProd ? "[id].css" : "[id].[contenthash].css",
+      filename: isProd
+        ? "static/css/[name].[contenthash].css"
+        : "static/css/[name].css",
+      chunkFilename: isProd
+        ? "static/css/[id].[contenthash].css"
+        : "static/css/[id].css",
     });
 const customProgressPlugin = new webpack.ProgressPlugin({
   handler: (percentage, message, ...args) => {
@@ -28,9 +27,6 @@ const customProgressPlugin = new webpack.ProgressPlugin({
     console.clear();
     console.info(msg, ...args);
   },
-  entries: true,
-  modules: true,
-  profile: true,
 });
 const path = require("path");
 module.exports = {
@@ -47,14 +43,15 @@ module.exports = {
       },
       {
         test: /\.(sa|sc|c)ss$/,
-        use: [StyleInjectionLoader, "css-loader", "sass-loader"],
+        use: [StyleInjectionLoader, "css-loader", "sass-loader"].filter(
+          Boolean
+        ),
       },
     ],
   },
   output: {
     clean: true,
     filename: (pathData) => {
-      console.log(pathData);
       return pathData.chunk.name === "main"
         ? "static/js/index.js"
         : "static/js/[contenthash].js";
