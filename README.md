@@ -12,7 +12,7 @@
 - Webpack dev server
 - React에서 Hot Module Replacement 적용
 - sass-loader 적용
-- css삽입에 대한 여러 방법
+- css 파일로 추출하기
 - TypeScript로의 마이그레이션
 
 ## 1. 초기 패키지 준비
@@ -849,10 +849,31 @@ const Count = () => {
 export default Count;
 ```
 
-### 먼저 적용할 css 와 나중에 적용할 css(준비중)
+# 7. css 파일로 추출하기
 
-훌륭한 ux를 위해서 페이지를 잡아주는 css를 먼저 불러옵시다.
-그뒤 필요한 녀석들은 쪼개서 컴포넌트가 필요할 때 불러옵시다.
+style-loader는 기본적으로 head안에 style태그로 인라인 css를 주입합니다.
+캐싱을 위해선 적절하지 않습니다.
+`linkTag`라는 옵션으로 따로 css를 추출할 수 있긴 한데, chunk형태로 쪼개는 기능은 없었습니다.
+이를 위해 `mini-css-extract-plugin`을 썼는데요. webpack에서도 권장하는 사항입니다.
+자세한 글은 길어져서 따로 문서로 만들었습니다.
+
+- [style-loader](docs/Webpack.style-loader.md)
+- [mini-css-extract-plugin](docs/Webpack.mini-css-extract-plugin.md)
+
+```js
+module.exports = {
+  plugins: [
+    new MiniCssExtractPlugin({
+      filename: isProd
+        ? "static/css/[name].[contenthash].css"
+        : "static/css/[name].css",
+      chunkFilename: isProd
+        ? "static/css/[id].[contenthash].css"
+        : "static/css/[id].css",
+    }),
+  ],
+};
+```
 
 ### 코드 스플리팅 (준비중)
 

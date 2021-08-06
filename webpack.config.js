@@ -52,6 +52,7 @@ module.exports = {
   output: {
     clean: true,
     filename: (pathData) => {
+      console.log(pathData);
       return pathData.chunk.name === "main"
         ? "static/js/index.js"
         : "static/js/[contenthash].js";
@@ -74,9 +75,9 @@ module.exports = {
     new HtmlWebpackPlugin({ template: "./public/index.html" }),
     customProgressPlugin,
   ].filter(Boolean),
-  optimization: {
-    splitChunks: {
-      chunks: "all",
-    },
-  },
+  // optimization: {
+  //   splitChunks: {
+  //     chunks: "all",
+  //   },
+  // },
 };
