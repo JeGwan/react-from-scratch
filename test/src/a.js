@@ -1,5 +1,6 @@
 const _ = require("lodash");
 const dayjs = require("dayjs");
+const validator = require("validator");
 const obj = require("./common.js");
 
 obj.count++;
@@ -11,5 +12,8 @@ module.exports = {
   },
   format(date) {
     return dayjs(date).format("YYYY");
+  },
+  isEmail: (email) => {
+    return validator.isEmail(email);
   },
 };

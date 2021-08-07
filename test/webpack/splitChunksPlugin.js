@@ -8,6 +8,7 @@ module.exports = {
   entry: {
     a: path.resolve(__dirname, "../src/a.js"),
     b: path.resolve(__dirname, "../src/b.js"),
+    c: path.resolve(__dirname, "../src/c.js"),
   },
   output: {
     clean: true,
@@ -20,5 +21,9 @@ module.exports = {
     },
     runtimeChunk: "single",
   },
-  plugins: [new HtmlWebpackPlugin()],
+  plugins: [
+    new HtmlWebpackPlugin({
+      template: path.resolve(__dirname, "../src/index.html"),
+    }),
+  ],
 };
